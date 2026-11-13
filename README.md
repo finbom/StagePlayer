@@ -1,13 +1,31 @@
+<p align="center">
+  <img src="stageplayer-brand/logo/logo-horizontal-on-light@2x.png#gh-light-mode-only" alt="StagePlayer" width="420">
+  <img src="stageplayer-brand/logo/logo-horizontal-on-dark@2x.png#gh-dark-mode-only" alt="StagePlayer" width="420">
+</p>
+
+<p align="center">
+  <b>A simple music and sound player for musical theatre rehearsals.</b><br>
+  Windows&nbsp;·&nbsp;macOS (Apple Silicon)&nbsp;·&nbsp;
+  <a href="https://github.com/finbom/StagePlayer/releases/latest">Download</a>
+</p>
+
 # StagePlayer
 
-A very simple music and sound player for musical theatre rehearsals. Build a playlist of MP3 and WAV
-files, add a cue and a note to each one, and run the whole show with the **Space** bar.
+Build a playlist of MP3 and WAV files, add a cue and a note to each one, and run the whole show with
+the **Space** bar.
 
-Runs on **Windows** and **macOS (Apple Silicon)**. Show files work on both.
+| Platform | Supported | Download |
+| --- | --- | --- |
+| **Windows** 10 and 11 (64-bit) | ✅ | Installer or portable `.exe` |
+| **macOS** on Apple Silicon (M1 or newer) | ✅ | `.dmg` |
+| macOS on Intel | ❌ | — |
+
+The same show file works on both Windows and macOS. Copy the show folder between computers and
+carry on rehearsing.
 
 ## Download
 
-Get the latest version from the repository's [**Releases**](https://github.com/finbom/StagePlayer/releases) page.
+Get the latest version from the [**Releases**](https://github.com/finbom/StagePlayer/releases/latest) page.
 
 **Windows**
 
