@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:"
+    />
+    <title>StagePlayer</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <!-- Transport: the big buttons and what is playing -->
+    <header class="transport">
+      <div class="transport-buttons">
+        <button id="btn-play" class="tbtn play" title="Play / Pause (Space)">
+          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" /></svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h4.5v15H6zm7.5 0H18v15h-4.5z" /></svg>
+          <span id="btn-play-label">Play</span>
+          <span class="hint">Space</span>
+        </button>
+        <button id="btn-stop" class="tbtn stop" title="Stop with fade (Esc). Press again to stop immediately.">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.5h13v13h-13z" /></svg>
+          <span>Stop</span>
+          <span class="hint">Esc</span>
+        </button>
+        <button id="btn-next" class="tbtn next" title="Select next entry (↓)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5v13l9.5-6.5zM16 5.5h2.5v13H16z" /></svg>
+          <span>Next</span>
+          <span class="hint">↓</span>
+        </button>
+      </div>
+
+      <div class="now">
+        <div class="now-title">
+          <span id="now-cue" class="cue-badge"></span>
+          <span id="now-name">No entry selected</span>
+          <span id="now-state" class="state-pill">Stopped</span>
+        </div>
+        <div id="now-cuetext" class="now-cuetext"></div>
+        <div id="progress" class="progress" title="Click or drag to move. ← / → moves 5 seconds.">
+          <div id="progress-fill" class="progress-fill"></div>
+          <div id="progress-handle" class="progress-handle"></div>
+        </div>
+        <div class="times">
+          <span id="time-elapsed">0:00.0</span>
+          <span id="time-total"></span>
+          <span id="time-remaining">−0:00.0</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <!-- Playlist -->
+      <section id="playlist" class="playlist">
+        <div class="toolbar">
+          <button id="tb-add" title="Import audio files (Ctrl+I)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>Add Audio…
+          </button>
+          <button id="tb-remove" title="Remove entry (Delete)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z" /></svg>Remove
+          </button>
+          <span class="toolbar-sep"></span>
+          <button id="tb-up" title="Move up (Ctrl+↑)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8z" /></svg>Move Up
+          </button>
+          <button id="tb-down" title="Move down (Ctrl+↓)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20 12-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8z" /></svg>Move Down
+          </button>
+          <button id="tb-duplicate" title="Duplicate entry (Ctrl+D)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m0 16H8V7h11z" /></svg>Duplicate
+          </button>
+        </div>
+
+        <div class="list-header cols" aria-hidden="true">
+          <div></div>
+          <div>#</div>
+          <div>Cue</div>
+          <div>File</div>
+          <div>Cue text</div>
+          <div class="c-comment">Comment</div>
+          <div class="c-len">Length</div>
+        </div>
+
+        <div id="rows" class="rows" role="listbox" tabindex="0" aria-label="Playlist"></div>
+
+        <div id="empty" class="empty">
+          <picture class="empty-logo">
+            <source srcset="brand/logo-stacked-on-dark.svg" media="(prefers-color-scheme: dark)" />
+            <img src="brand/logo-stacked-on-light.svg" alt="StagePlayer" />
+          </picture>
+          <p class="empty-title">Drag MP3 or WAV files here</p>
+          <p>from Explorer, or</p>
+          <button id="empty-import" class="btn primary">Import Audio Files…</button>
+        </div>
+
+        <div id="drop-indicator" class="drop-indicator" hidden></div>
+      </section>
+
+      <!-- Details of the selected entry -->
+      <aside id="details" class="details empty-state">
+        <p class="details-empty">Select an entry to edit its cue and comment.</p>
+        <div class="details-body">
+          <h2 id="detail-title">Entry</h2>
+          <div class="field">
+            <label for="detail-cue">Cue</label>
+            <input type="text" id="detail-cue" maxlength="20" placeholder="e.g. Q12" spellcheck="false" />
+          </div>
+          <div class="field">
+            <label for="detail-cuetext">Cue text — when to play</label>
+            <textarea id="detail-cuetext" rows="3" placeholder="e.g. After Anna: “I’ll never go back” (p. 42)"></textarea>
+          </div>
+          <div class="field">
+            <label for="detail-comment">Comment</label>
+            <textarea id="detail-comment" rows="5" placeholder="Free notes"></textarea>
+          </div>
+          <div class="field">
+            <label for="detail-volume">Volume</label>
+            <div class="volume-row">
+              <input type="range" id="detail-volume" min="-30" max="6" step="0.5" />
+              <span id="detail-volume-value" class="volume-value">0 dB</span>
+              <button id="detail-volume-reset" class="btn small" title="Reset to 0 dB">Reset</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>File</label>
+            <div id="detail-file" class="file-name"></div>
+            <div id="detail-path" class="file-info"></div>
+            <div id="detail-length" class="file-info"></div>
+            <div id="detail-status" class="file-status" hidden></div>
+            <button id="detail-locate" class="btn primary" hidden>Locate File…</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="statusbar">
+      <span id="status-count"></span>
+      <span id="status-file" class="status-file"></span>
+      <span class="spacer"></span>
+      <button id="status-autostop" title="Toggle (also in the Playback menu)"></button>
+      <button id="status-autoend" title="Toggle (also in the Playback menu)"></button>
+      <span id="status-fade" title="Change in Playback › Stop Fade Time"></span>
+    </footer>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+  </body>
+</html>
