@@ -30,6 +30,10 @@
   --playing-row: color-mix(in srgb, var(--play) 12%, var(--surface));
 }
 
+:root[data-platform='darwin'] {
+  --font: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --accent-strong: #f2b33d;

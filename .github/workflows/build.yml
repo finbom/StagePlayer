@@ -1,0 +1,99 @@
+name: Build
+
+# Every push: build, test and smoke-test on Windows and macOS (Apple Silicon).
+# A version tag (v1.2.3): also create a draft GitHub release with the installers.
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            dist: dist:win
+            app: release/win-unpacked/StagePlayer.exe
+            files: |
+              release/StagePlayer-Setup-*.exe
+              release/StagePlayer-*-Portable.exe
+          - os: macos-latest # Apple Silicon (arm64)
+            dist: dist:mac
+            app: release/mac-arm64/StagePlayer.app/Contents/MacOS/StagePlayer
+            files: |
+              release/StagePlayer-*-mac-arm64.dmg
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false' # no certificates yet; the Mac app is ad-hoc signed
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run ${{ matrix.dist }}
+      - name: Smoke test the packaged app
+        run: node tests/smoke.mjs "${{ matrix.app }}"
+        env:
+          SMOKE_OUT: smoke-output
+      - name: Upload smoke test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ runner.os }}
+          path: smoke-output/
+          if-no-files-found: ignore
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ runner.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          merge-multiple: true
+          path: installers
+      - name: Create draft GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: StagePlayer ${{ github.ref_name }}
+          files: installers/*
+          body: |
+            ## Download
+
+            **Windows**
+            - **StagePlayer-Setup-x.y.z.exe**: installer (no administrator rights needed)
+            - **StagePlayer-x.y.z-Portable.exe**: runs without installing, e.g. from a USB stick
+
+            **macOS** (Apple Silicon: M1 or newer)
+            - **StagePlayer-x.y.z-mac-arm64.dmg**: open it and drag StagePlayer to Applications.
+              The Mac app is not notarized by Apple. The first time you open it, macOS says it cannot
+              verify the app: open **System Settings › Privacy & Security**, scroll down and click
+              **Open Anyway**.
+
+            Show files (`.stageshow`) work on both Windows and macOS. See the
+            [README](https://github.com/finbom/StagePlayer#readme) for how to use StagePlayer.
+
+            ## Code signing policy
+
+            Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+            Windows releases published before code signing was approved are unsigned; Windows may then
+            show "Windows protected your PC" (click **More info → Run anyway**).

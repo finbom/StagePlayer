@@ -21,7 +21,9 @@ import {
   AUDIO_EXTENSIONS,
   SHOW_EXTENSION,
   deserializeShow,
+  baseNameAny,
   expandPaths,
+  findRelinks,
   isAudioPath,
   isShowPath,
   naturalSort,
@@ -32,6 +34,7 @@ import {
 } from './showFile';
 
 const APP_NAME = 'StagePlayer';
+const isMac = process.platform === 'darwin';
 const SCHEME = 'app';
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 const ASSETS_DIR = path.join(__dirname, '..', 'assets');
@@ -76,6 +79,17 @@ function start(): void {
     if (!target.startsWith(RENDERER_DIR + path.sep)) return new Response('Not found', { status: 404 });
     return net.fetch(pathToFileURL(target).toString());
   });
+
+  if (isMac) {
+    app.setAboutPanelOptions({
+      applicationName: APP_NAME,
+      applicationVersion: app.getVersion(),
+      version: `Electron ${process.versions.electron}`,
+      credits: 'A simple music and sound player for theatre rehearsals.',
+    });
+    // The packaged app gets its Dock icon from the bundle; show it in development too.
+    if (!app.isPackaged) app.dock?.setIcon(path.join(ASSETS_DIR, 'icon-256.png'));
+  }
 
   registerIpc();
   rebuildMenu();
@@ -138,8 +152,17 @@ function documentName(): string {
 }
 
 function updateTitle(): void {
-  // Windows convention: "*Name - App" when there are unsaved changes.
-  win?.setTitle(`${documentState.dirty ? '*' : ''}${documentName()} - ${APP_NAME}`);
+  if (!win) return;
+  if (isMac) {
+    // macOS convention: document name as title, a dot in the close button for unsaved
+    // changes, and the file's icon in the title bar (⌘-click shows its folder).
+    win.setTitle(documentName());
+    win.setDocumentEdited(documentState.dirty);
+    win.setRepresentedFilename(documentState.filePath ?? '');
+  } else {
+    // Windows convention: "*Name - App" when there are unsaved changes.
+    win.setTitle(`${documentState.dirty ? '*' : ''}${documentName()} - ${APP_NAME}`);
+  }
 }
 
 function askSaveChanges(): DiscardChoice {
@@ -293,6 +316,7 @@ function addRecent(filePath: string): void {
   prefs.recentFiles = [filePath, ...prefs.recentFiles.filter((f) => f.toLowerCase() !== filePath.toLowerCase())].slice(0, 10);
   prefs.lastDirectory = path.dirname(filePath);
   savePrefs(prefs);
+  if (isMac) app.addRecentDocument(filePath); // Dock menu and Finder "Recent Items"
   rebuildMenu();
 }
 
@@ -305,8 +329,10 @@ function removeRecent(filePath: string): void {
 async function locateFile(missingPath: string, otherMissing: string[]): Promise<LocateResult | null> {
   if (!win) return null;
   const oldDir = path.dirname(missingPath);
+  const missingName = baseNameAny(missingPath); // the path may come from the other OS
   const result = await dialog.showOpenDialog(win, {
-    title: `Locate "${path.basename(missingPath)}"`,
+    title: `Locate "${missingName}"`,
+    message: `Locate "${missingName}"`, // macOS shows this instead of the title
     defaultPath: fs.existsSync(oldDir) ? oldDir : (prefs.lastDirectory ?? undefined),
     properties: ['openFile'],
     filters: AUDIO_FILTERS,
@@ -315,19 +341,18 @@ async function locateFile(missingPath: string, otherMissing: string[]): Promise<
   if (result.canceled || !chosen) return null;
 
   const relinked: Record<string, string> = { [missingPath]: chosen };
-  const newDir = path.dirname(chosen);
-  const matches = otherMissing
-    .filter((p) => p !== missingPath)
-    .map((p) => [p, path.join(newDir, path.basename(p))] as const)
-    .filter(([, candidate]) => fs.existsSync(candidate));
+  const matches = Object.entries(findRelinks(missingPath, chosen, otherMissing));
 
   if (matches.length) {
+    const n = matches.length;
+    const names = matches.slice(0, 8).map(([, p]) => `•  ${path.basename(p)}`);
+    if (n > 8) names.push(`…and ${n - 8} more`);
     const { response } = await dialog.showMessageBox(win, {
       type: 'question',
       title: APP_NAME,
-      message: `${matches.length} other missing file${matches.length === 1 ? ' was' : 's were'} found in the same folder.`,
-      detail: 'Do you want to relink them too?',
-      buttons: ['Relink All', 'Only This File'],
+      message: `${n} other missing file${n === 1 ? ' was' : 's were'} found in the same place.`,
+      detail: `Do you want to update ${n === 1 ? 'that link' : 'all these links'} too?\n\n${names.join('\n')}`,
+      buttons: [n === 1 ? 'Update Both' : `Update All ${n + 1}`, 'Only This File'],
       defaultId: 0,
       cancelId: 1,
       noLink: true,
@@ -335,7 +360,7 @@ async function locateFile(missingPath: string, otherMissing: string[]): Promise<
     if (response === 0) for (const [oldPath, newPath] of matches) relinked[oldPath] = newPath;
   }
 
-  prefs.lastDirectory = newDir;
+  prefs.lastDirectory = path.dirname(chosen);
   savePrefs(prefs);
   return { relinked };
 }
@@ -393,20 +418,19 @@ function showShortcuts(): void {
     message: 'Keyboard Shortcuts',
     detail: [
       'Space  —  Play the selected entry / Pause / Resume',
-      'Esc  —  Stop (fade out)',
+      'Esc  —  Stop',
       'Esc again or Shift+Esc  —  Stop everything immediately',
       '↓ / ↑  —  Select next / previous entry',
       '← / →  —  Back / forward 5 seconds',
-      'Home / End  —  First / last entry',
-      'F2 or Enter  —  Edit cue and comment',
+      isMac ? 'Return  —  Edit cue and comment' : 'F2 or Enter  —  Edit cue and comment',
       'Esc (while editing)  —  Leave the text field',
-      'Delete  —  Remove entry',
-      'Ctrl+↑ / Ctrl+↓  —  Move entry up / down',
-      'Ctrl+D  —  Duplicate entry',
-      'Ctrl+I  —  Import audio files',
-      'Ctrl+Z / Ctrl+Y  —  Undo / Redo',
-      'Ctrl+N / Ctrl+O / Ctrl+S  —  New / Open / Save',
-      'Ctrl+Plus / Ctrl+Minus  —  Zoom in / out',
+      isMac ? '⌫ (Delete)  —  Remove entry' : 'Delete  —  Remove entry',
+      isMac ? '⌘↑ / ⌘↓  —  Move entry up / down' : 'Ctrl+↑ / Ctrl+↓  —  Move entry up / down',
+      isMac ? '⌘D  —  Duplicate entry' : 'Ctrl+D  —  Duplicate entry',
+      isMac ? '⌘I  —  Import audio files' : 'Ctrl+I  —  Import audio files',
+      isMac ? '⌘Z / ⇧⌘Z  —  Undo / Redo' : 'Ctrl+Z / Ctrl+Y  —  Undo / Redo',
+      isMac ? '⌘N / ⌘O / ⌘S  —  New / Open / Save' : 'Ctrl+N / Ctrl+O / Ctrl+S  —  New / Open / Save',
+      isMac ? '⌘+ / ⌘−  —  Zoom in / out' : 'Ctrl+Plus / Ctrl+Minus  —  Zoom in / out',
     ].join('\n'),
   });
 }

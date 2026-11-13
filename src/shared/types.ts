@@ -92,6 +92,8 @@ export interface RecoveryData {
 
 /** The API the preload script exposes to the renderer as `window.stagePlayer`. */
 export interface StagePlayerApi {
+  /** 'win32', 'darwin', … */
+  platform: string;
   onMenuCommand(callback: (command: MenuCommand) => void): void;
   getStartupShow(): Promise<LoadedShow | null>;
   openShowDialog(): Promise<LoadedShow | null>;

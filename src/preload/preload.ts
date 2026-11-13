@@ -3,6 +3,7 @@ import type { MenuCommand, StagePlayerApi } from '../shared/types';
 
 // The only bridge between the UI and the operating system. Keep it small and explicit.
 const api: StagePlayerApi = {
+  platform: process.platform,
   onMenuCommand: (callback) => {
     ipcRenderer.on('menu-command', (_event, command: MenuCommand) => callback(command));
   },

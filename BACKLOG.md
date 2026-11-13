@@ -5,11 +5,15 @@ Roughly ordered by expected value for rehearsals within each section.
 
 ## Next phase
 
-- **macOS version** — build and test on a Mac. Mac menu conventions (app menu, ⌘ shortcuts,
-  "About" and "Quit" in the app menu), `.dmg` packaging, universal binary (Apple Silicon + Intel).
-  Decide whether to pay for Apple notarization (Apple Developer account, $99/year) or document the
-  right-click → Open workaround. The macOS icon (`stageplayer-brand/desktop/icon.icns`) is already
-  configured.
+- **macOS: test on a real Mac** — the first Mac version (Apple Silicon only) is built and
+  smoke-tested in GitHub Actions; still to verify by hand: drag and drop from Finder, sound output,
+  menus, the "Open Anyway" first-launch flow.
+- **macOS: notarization** — removes the "cannot verify" warning. Requires the Apple Developer
+  Program ($99/year).
+- **macOS: Intel Macs** — not supported (decision: Apple Silicon only). Could be added as a
+  universal build.
+- **macOS: open a show from Finder** by dropping it on the Dock icon (`open-file` event; today a show
+  can be dropped onto the window).
 - **Brand font** — the UI uses Segoe UI; the brand font Archivo could be bundled for headings.
 
 ## Playback
@@ -42,10 +46,10 @@ Roughly ordered by expected value for rehearsals within each section.
 
 - **Code signing (Windows) via SignPath Foundation** (free for open source). Steps:
   1. ~~MIT licence, code signing policy and privacy statement in the README~~ (done)
-  2. Two-factor login on GitHub, then make the repository public
-  3. Publish v0.1.0 unsigned (push tag `v0.1.0`, publish the draft release)
-  4. Apply at https://signpath.org/apply (open question: are logos under MIT OK — they are now)
-  5. After approval: add the SignPath signing step to `.github/workflows/release.yml`
+  2. ~~Make the repository public~~ (done)
+  3. ~~Publish v0.1.0 unsigned~~ (done)
+  4. ~~Apply at https://signpath.org/apply~~ (done, waiting for reply)
+  5. After approval: add the SignPath signing step to `.github/workflows/build.yml`
 - **Auto-update from GitHub Releases** (electron-updater).
 - **Windows on ARM build** (arm64) if anyone rehearses on such a laptop.
 - **Smaller app** — Tauri was considered; Electron was chosen for identical audio behaviour on
@@ -53,5 +57,6 @@ Roughly ordered by expected value for rehearsals within each section.
 
 ## Housekeeping
 
-- Automated tests for the playback logic and the UI (today: round-trip test of the show file
-  format and manual / scripted smoke tests).
+- More automated UI tests (today: show file / cross-platform / relink tests and a smoke test that
+  drives the packaged app on Windows and macOS in CI). Not covered yet: save/open dialogs, menu
+  shortcuts, drag and drop.

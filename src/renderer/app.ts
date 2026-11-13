@@ -3,6 +3,7 @@ import { api } from './api.js';
 import { AudioLibrary, Player } from './audio.js';
 import { $, dbToGain, debounce, fileName, formatClock, formatDb, formatDuration, isTextField } from './util.js';
 
+const isMac = api.platform === 'darwin';
 const DEFAULT_SETTINGS: ShowSettings = { autoAdvanceOnStop: true, autoAdvanceOnEnd: true, stopFadeSeconds: 0 };
 const SEEK_STEP_SECONDS = 5;
 const UNDO_LIMIT = 200;
@@ -776,6 +777,9 @@ function handleKeyDown(e: KeyboardEvent): void {
       e.preventDefault();
       select(entries[e.key === 'Home' ? 0 : entries.length - 1]!.id);
       break;
+    case 'Backspace': // the "delete" key on a Mac keyboard
+      if (!isMac) return;
+    // falls through
     case 'Delete':
       if (onSlider) return;
       e.preventDefault();
@@ -972,7 +976,17 @@ function bindEvents(): void {
   library.onChange = refresh;
 }
 
+/** Show Mac shortcut symbols in tooltips (the HTML is written with Windows names). */
+function adaptToPlatform(): void {
+  document.documentElement.dataset.platform = api.platform;
+  if (!isMac) return;
+  for (const el of document.querySelectorAll<HTMLElement>('[title]')) {
+    el.title = el.title.replace(/Ctrl\+/g, '⌘').replace('(Delete)', '(⌫)');
+  }
+}
+
 async function init(): Promise<void> {
+  adaptToPlatform();
   bindEvents();
   applyLoaded((await api.getStartupShow()) ?? emptyShow());
   requestAnimationFrame(frame);

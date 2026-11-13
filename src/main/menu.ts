@@ -1,9 +1,11 @@
-import { Menu, type MenuItemConstructorOptions } from 'electron';
+import { app, Menu, type MenuItemConstructorOptions } from 'electron';
 import type { MenuCommand, MenuState } from '../shared/types';
 import type { Prefs, ThemeSetting } from './prefs';
 import { DEFAULT_SETTINGS } from './showFile';
 
 export const FADE_OPTIONS = [0, 0.5, 1, 2, 3, 5];
+
+const isMac = process.platform === 'darwin';
 
 export interface MenuContext {
   prefs: Prefs;
@@ -16,6 +18,9 @@ export interface MenuContext {
   showShortcuts(): void;
   showAbout(): void;
 }
+
+/** Windows menus use "&" for keyboard mnemonics; macOS menus have none. */
+const label = (text: string) => (isMac ? text.replace(/&(?!&)/g, '') : text);
 
 /**
  * Keys like Space, Esc and the arrows are only *shown* in the menu
@@ -32,82 +37,121 @@ export function buildMenu(ctx: MenuContext): Menu {
   const recent: MenuItemConstructorOptions[] = ctx.prefs.recentFiles.length
     ? [
         ...ctx.prefs.recentFiles.map((file, i) => ({
-          label: `&${i + 1}  ${file.replace(/&/g, '&&')}`,
+          label: isMac ? file : `&${i + 1}  ${file.replace(/&/g, '&&')}`,
           click: () => send({ type: 'openRecent', path: file }),
         })),
         { type: 'separator' as const },
-        { label: '&Clear Recent List', click: ctx.clearRecent },
+        { label: label('&Clear Recent List'), click: ctx.clearRecent },
       ]
     : [{ label: 'No recent shows', enabled: false }];
 
-  const themeItem = (theme: ThemeSetting, label: string): MenuItemConstructorOptions => ({
-    label,
+  const themeItem = (theme: ThemeSetting, text: string): MenuItemConstructorOptions => ({
+    label: label(text),
     type: 'radio',
     checked: ctx.prefs.theme === theme,
     click: () => ctx.setTheme(theme),
   });
 
+  const appMenu: MenuItemConstructorOptions[] = isMac
+    ? [
+        {
+          label: app.name,
+          submenu: [
+            { role: 'about' },
+            { type: 'separator' },
+            { role: 'services' },
+            { type: 'separator' },
+            { role: 'hide' },
+            { role: 'hideOthers' },
+            { role: 'unhide' },
+            { type: 'separator' },
+            { role: 'quit' },
+          ],
+        },
+      ]
+    : [];
+
   const template: MenuItemConstructorOptions[] = [
+    ...appMenu,
     {
-      label: '&File',
+      label: label('&File'),
       submenu: [
-        { label: '&New Show', accelerator: 'CmdOrCtrl+N', click: () => send({ type: 'new' }) },
-        { label: '&Open Show…', accelerator: 'CmdOrCtrl+O', click: () => send({ type: 'open' }) },
-        { label: 'Open &Recent', submenu: recent },
+        { label: label('&New Show'), accelerator: 'CmdOrCtrl+N', click: () => send({ type: 'new' }) },
+        { label: label('&Open Show…'), accelerator: 'CmdOrCtrl+O', click: () => send({ type: 'open' }) },
+        { label: label('Open &Recent'), submenu: recent },
         { type: 'separator' },
-        { label: '&Save', accelerator: 'CmdOrCtrl+S', click: () => send({ type: 'save' }) },
-        { label: 'Save &As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => send({ type: 'saveAs' }) },
+        { label: label('&Save'), accelerator: 'CmdOrCtrl+S', click: () => send({ type: 'save' }) },
+        { label: label('Save &As…'), accelerator: 'CmdOrCtrl+Shift+S', click: () => send({ type: 'saveAs' }) },
         { type: 'separator' },
-        { label: '&Import Audio Files…', accelerator: 'CmdOrCtrl+I', click: () => send({ type: 'import' }) },
+        { label: label('&Import Audio Files…'), accelerator: 'CmdOrCtrl+I', click: () => send({ type: 'import' }) },
         { type: 'separator' },
-        { label: 'E&xit', role: 'quit' },
+        isMac ? { role: 'close' } : { label: 'E&xit', role: 'quit' },
       ],
     },
     {
-      label: '&Edit',
+      label: label('&Edit'),
       submenu: [
-        { id: 'undo', label: '&Undo', accelerator: 'CmdOrCtrl+Z', enabled: can('canUndo'), click: () => send({ type: 'undo' }) },
-        { id: 'redo', label: '&Redo', accelerator: 'CmdOrCtrl+Y', enabled: can('canRedo'), click: () => send({ type: 'redo' }) },
+        { id: 'undo', label: label('&Undo'), accelerator: 'CmdOrCtrl+Z', enabled: can('canUndo'), click: () => send({ type: 'undo' }) },
+        {
+          id: 'redo',
+          label: label('&Redo'),
+          accelerator: isMac ? 'Cmd+Shift+Z' : 'Ctrl+Y',
+          enabled: can('canRedo'),
+          click: () => send({ type: 'redo' }),
+        },
         { type: 'separator' },
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
+        ...(isMac ? [{ role: 'selectAll' } as MenuItemConstructorOptions] : []),
         { type: 'separator' },
-        { id: 'edit', label: '&Edit Cue and Comment', ...shown('F2'), enabled: can('hasSelection'), click: () => send({ type: 'edit' }) },
-        { id: 'duplicate', label: '&Duplicate Entry', accelerator: 'CmdOrCtrl+D', enabled: can('hasSelection'), click: () => send({ type: 'duplicate' }) },
-        { id: 'remove', label: 'Re&move Entry', ...shown('Delete'), enabled: can('hasSelection'), click: () => send({ type: 'remove' }) },
+        {
+          id: 'edit',
+          label: label('&Edit Cue and Comment'),
+          ...shown(isMac ? 'Enter' : 'F2'),
+          enabled: can('hasSelection'),
+          click: () => send({ type: 'edit' }),
+        },
+        { id: 'duplicate', label: label('&Duplicate Entry'), accelerator: 'CmdOrCtrl+D', enabled: can('hasSelection'), click: () => send({ type: 'duplicate' }) },
+        {
+          id: 'remove',
+          label: label('Re&move Entry'),
+          ...shown(isMac ? 'Backspace' : 'Delete'),
+          enabled: can('hasSelection'),
+          click: () => send({ type: 'remove' }),
+        },
         { type: 'separator' },
-        { id: 'moveUp', label: 'Move Entry &Up', accelerator: 'CmdOrCtrl+Up', enabled: can('canMoveUp'), click: () => send({ type: 'moveUp' }) },
-        { id: 'moveDown', label: 'Move Entry Do&wn', accelerator: 'CmdOrCtrl+Down', enabled: can('canMoveDown'), click: () => send({ type: 'moveDown' }) },
+        { id: 'moveUp', label: label('Move Entry &Up'), accelerator: 'CmdOrCtrl+Up', enabled: can('canMoveUp'), click: () => send({ type: 'moveUp' }) },
+        { id: 'moveDown', label: label('Move Entry Do&wn'), accelerator: 'CmdOrCtrl+Down', enabled: can('canMoveDown'), click: () => send({ type: 'moveDown' }) },
       ],
     },
     {
-      label: '&Playback',
+      label: label('&Playback'),
       submenu: [
-        { label: '&Play / Pause', ...shown('Space'), click: () => send({ type: 'playPause' }) },
-        { label: '&Stop (Fade Out)', ...shown('Esc'), click: () => send({ type: 'stop' }) },
-        { label: 'Stop &All Immediately', ...shown('Shift+Esc'), click: () => send({ type: 'panic' }) },
-        { label: '&Next Entry', ...shown('Down'), click: () => send({ type: 'next' }) },
+        { label: label('&Play / Pause'), ...shown('Space'), click: () => send({ type: 'playPause' }) },
+        { label: label('&Stop'), ...shown('Esc'), click: () => send({ type: 'stop' }) },
+        { label: label('Stop &All Immediately'), ...shown('Shift+Esc'), click: () => send({ type: 'panic' }) },
+        { label: label('&Next Entry'), ...shown('Down'), click: () => send({ type: 'next' }) },
         { type: 'separator' },
-        { label: '&Back 5 Seconds', ...shown('Left'), click: () => send({ type: 'seekBack' }) },
-        { label: '&Forward 5 Seconds', ...shown('Right'), click: () => send({ type: 'seekForward' }) },
+        { label: label('&Back 5 Seconds'), ...shown('Left'), click: () => send({ type: 'seekBack' }) },
+        { label: label('&Forward 5 Seconds'), ...shown('Right'), click: () => send({ type: 'seekForward' }) },
         { type: 'separator' },
         {
           id: 'autoAdvanceOnStop',
-          label: 'Auto-Advance on S&top',
+          label: label('Auto-Advance on S&top'),
           type: 'checkbox',
           checked: settings.autoAdvanceOnStop,
           click: (item) => send({ type: 'setAutoAdvanceOnStop', value: item.checked }),
         },
         {
           id: 'autoAdvanceOnEnd',
-          label: 'Auto-Advance on Entry &End',
+          label: label('Auto-Advance on Entry &End'),
           type: 'checkbox',
           checked: settings.autoAdvanceOnEnd,
           click: (item) => send({ type: 'setAutoAdvanceOnEnd', value: item.checked }),
         },
         {
-          label: 'Stop Fade &Time',
+          label: label('Stop Fade &Time'),
           submenu: FADE_OPTIONS.map((seconds) => ({
             id: `fade-${seconds}`,
             label: seconds === 0 ? 'No Fade (Cut)' : `${seconds} Second${seconds === 1 ? '' : 's'}`,
@@ -118,7 +162,7 @@ export function buildMenu(ctx: MenuContext): Menu {
         },
         { type: 'separator' },
         {
-          label: '&Keep Computer Awake',
+          label: label('&Keep Computer Awake'),
           type: 'checkbox',
           checked: ctx.prefs.keepAwake,
           click: (item) => ctx.setKeepAwake(item.checked),
@@ -126,10 +170,10 @@ export function buildMenu(ctx: MenuContext): Menu {
       ],
     },
     {
-      label: '&View',
+      label: label('&View'),
       submenu: [
         {
-          label: '&Theme',
+          label: label('&Theme'),
           submenu: [themeItem('system', 'Use &System Setting'), themeItem('light', '&Light'), themeItem('dark', '&Dark')],
         },
         { type: 'separator' },
@@ -143,12 +187,15 @@ export function buildMenu(ctx: MenuContext): Menu {
           : []),
       ],
     },
+    ...(isMac ? [{ role: 'windowMenu' } as MenuItemConstructorOptions] : []),
     {
-      label: '&Help',
+      label: label('&Help'),
+      role: 'help',
       submenu: [
-        { label: '&Keyboard Shortcuts', accelerator: 'F1', click: ctx.showShortcuts },
-        { type: 'separator' },
-        { label: '&About StagePlayer', click: ctx.showAbout },
+        { label: label('&Keyboard Shortcuts'), accelerator: isMac ? 'Cmd+/' : 'F1', click: ctx.showShortcuts },
+        ...(isMac
+          ? []
+          : ([{ type: 'separator' }, { label: '&About StagePlayer', click: ctx.showAbout }] as MenuItemConstructorOptions[])),
       ],
     },
   ];

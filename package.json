@@ -1,7 +1,7 @@
 {
   "name": "stageplayer",
   "productName": "StagePlayer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A simple music and sound player for musical theatre rehearsals.",
   "main": "dist/main/main.js",
   "private": true,
@@ -14,7 +14,10 @@
     "build": "npm run clean && tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && node scripts/copy-static.mjs",
     "start": "npm run build && node scripts/launch.mjs",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
-    "dist:win": "npm run build && electron-builder --win --publish never"
+    "test": "npm run build && node tests/showfile.test.cjs",
+    "smoke": "node tests/smoke.mjs",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --arm64 --publish never"
   },
   "build": {
     "appId": "com.stageplayer.app",
@@ -28,7 +31,22 @@
       "package.json"
     ],
     "mac": {
-      "icon": "stageplayer-brand/desktop/icon.icns"
+      "icon": "stageplayer-brand/desktop/icon.icns",
+      "category": "public.app-category.music",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "identity": "-",
+      "hardenedRuntime": false,
+      "artifactName": "${productName}-${version}-mac-arm64.${ext}"
+    },
+    "dmg": {
+      "title": "${productName} ${version}"
     },
     "win": {
       "icon": "stageplayer-brand/desktop/icon.ico",
