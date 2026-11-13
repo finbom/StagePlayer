@@ -12,7 +12,7 @@ const FORMAT_VERSION = 1;
 export const DEFAULT_SETTINGS: ShowSettings = {
   autoAdvanceOnStop: true,
   autoAdvanceOnEnd: true,
-  stopFadeSeconds: 2,
+  stopFadeSeconds: 0,
 };
 
 /** One playlist entry as stored in a .stageshow file. */

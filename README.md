@@ -12,15 +12,15 @@ Get the latest version from the repository's **Releases** page:
 - `StagePlayer-Setup-x.y.z.exe` — installer (no administrator rights needed)
 - `StagePlayer-x.y.z-Portable.exe` — runs without installing, e.g. from a USB stick
 
-The app is not code-signed yet, so Windows may show **"Windows protected your PC"**. Click
-**More info → Run anyway**.
+Until code signing is in place (see [Code signing policy](#code-signing-policy)), Windows may show
+**"Windows protected your PC"**. Click **More info → Run anyway**.
 
 ## Running a rehearsal
 
 | Key | Action |
 | --- | --- |
 | **Space** | Play the selected entry. If it is already playing: pause. Paused: resume. |
-| **Esc** | Stop with a fade-out. Press again to silence everything immediately (also **Shift+Esc**). |
+| **Esc** | Stop. Cuts immediately by default; a fade-out can be chosen in Playback › Stop Fade Time. During a fade, press again to silence everything immediately (also **Shift+Esc**). |
 | **↓ / ↑** | Select the next / previous entry (the **Next** button does the same as ↓). |
 | **← / →** | Back / forward 5 seconds. With nothing playing, this cues the selected entry at that point. |
 | **F2** or **Enter** | Edit the cue and comment of the selected entry. **Esc** leaves the text field. |
@@ -33,7 +33,8 @@ With the two default options in the **Playback** menu:
 So a whole show runs with just Space (and Esc to cut a track early). If you have already selected
 another entry yourself, StagePlayer leaves your selection alone.
 
-Starting a new entry while another is playing fades the old one out (Playback › Stop Fade Time).
+Starting a new entry while another is playing stops the old one, using the same Stop Fade Time
+(cut by default).
 
 ## Building the playlist
 
@@ -81,3 +82,31 @@ stageplayer-brand/  Logo and icon assets (see its README); the build copies what
 
 To publish a release, push a tag such as `v0.1.0`. The GitHub Actions workflow builds the Windows
 files and attaches them to a draft release.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+Windows releases are built from this repository by GitHub Actions and signed through SignPath.
+Every signing request is approved manually. (Code signing is being set up; releases published
+before approval are unsigned.)
+
+Team roles:
+
+- Committers and reviewers: [finbom](https://github.com/finbom)
+- Approvers: [finbom](https://github.com/finbom)
+
+Contributions from anyone else (pull requests) are reviewed by a committer before they are merged.
+
+## Privacy
+
+This program will not transfer any information to other networked systems unless specifically
+requested by the user or the person installing or operating it.
+
+StagePlayer makes no network connections. Shows, settings and recently used files are stored
+only on your own computer.
+
+## License
+
+[MIT](LICENSE), covering both the source code and the logo and icon files in `stageplayer-brand/`.

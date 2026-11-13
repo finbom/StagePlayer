@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { AudioLibrary, Player } from './audio.js';
 import { $, dbToGain, debounce, fileName, formatClock, formatDb, formatDuration, isTextField } from './util.js';
 
-const DEFAULT_SETTINGS: ShowSettings = { autoAdvanceOnStop: true, autoAdvanceOnEnd: true, stopFadeSeconds: 2 };
+const DEFAULT_SETTINGS: ShowSettings = { autoAdvanceOnStop: true, autoAdvanceOnEnd: true, stopFadeSeconds: 0 };
 const SEEK_STEP_SECONDS = 5;
 const UNDO_LIMIT = 200;
 

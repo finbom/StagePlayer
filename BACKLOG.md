@@ -40,8 +40,12 @@ Roughly ordered by expected value for rehearsals within each section.
 
 ## Distribution
 
-- **Code signing (Windows)** — removes the SmartScreen "Windows protected your PC" warning.
-  Requires a code signing certificate.
+- **Code signing (Windows) via SignPath Foundation** (free for open source). Steps:
+  1. ~~MIT licence, code signing policy and privacy statement in the README~~ (done)
+  2. Two-factor login on GitHub, then make the repository public
+  3. Publish v0.1.0 unsigned (push tag `v0.1.0`, publish the draft release)
+  4. Apply at https://signpath.org/apply (open question: are logos under MIT OK — they are now)
+  5. After approval: add the SignPath signing step to `.github/workflows/release.yml`
 - **Auto-update from GitHub Releases** (electron-updater).
 - **Windows on ARM build** (arm64) if anyone rehearses on such a laptop.
 - **Smaller app** — Tauri was considered; Electron was chosen for identical audio behaviour on
@@ -51,4 +55,3 @@ Roughly ordered by expected value for rehearsals within each section.
 
 - Automated tests for the playback logic and the UI (today: round-trip test of the show file
   format and manual / scripted smoke tests).
-- Choose a licence for the GitHub repository (package.json says `UNLICENSED` for now).
