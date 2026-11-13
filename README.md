@@ -23,25 +23,74 @@ the **Space** bar.
 The same show file works on both Windows and macOS. Copy the show folder between computers and
 carry on rehearsing.
 
-## Download
+## Download and install
 
 Get the latest version from the [**Releases**](https://github.com/finbom/StagePlayer/releases/latest) page.
 
-**Windows**
+| File | For |
+| --- | --- |
+| `StagePlayer-Setup-x.y.z.exe` | Windows: installer (no administrator rights needed) |
+| `StagePlayer-x.y.z-Portable.exe` | Windows: runs without installing, e.g. from a USB stick |
+| `StagePlayer-x.y.z-mac-arm64.dmg` | macOS on Apple Silicon (M1 or newer) |
+| `SHA256SUMS.txt` | Checksums to [verify the download](#verify-the-download-optional) |
 
-- `StagePlayer-Setup-x.y.z.exe` — installer (no administrator rights needed)
-- `StagePlayer-x.y.z-Portable.exe` — runs without installing, e.g. from a USB stick
+> **Why do I get a warning?** StagePlayer is free, open-source software and its files are not (yet)
+> signed by a certificate that Windows and macOS recognise (see
+> [Code signing policy](#code-signing-policy)). The warning means "unknown publisher", not that
+> something is wrong. You only need to confirm it the first time you start a new version.
 
-Until code signing is in place (see [Code signing policy](#code-signing-policy)), Windows may show
-**"Windows protected your PC"**. Click **More info → Run anyway**.
+### Windows
 
-**macOS** (Apple Silicon: M1 or newer; Intel Macs are not supported)
+1. Download `StagePlayer-Setup-x.y.z.exe` (or the portable version) and double-click it.
+2. A blue window says **"Windows protected your PC"**.
+3. Click **More info** (the small link under the text).
+4. Click **Run anyway**.
 
-- `StagePlayer-x.y.z-mac-arm64.dmg` — open it and drag StagePlayer to **Applications**.
+**There is no "Run anyway" button?** Close the window, right-click the downloaded file, choose
+**Properties**, tick **Unblock** at the bottom of the **General** tab, click **OK** and start it again.
 
-The Mac app is not notarized by Apple. The first time you open it, macOS says it cannot verify the
-app. Click **Done**, open **System Settings › Privacy & Security**, scroll down and click
-**Open Anyway**. You only need to do this once.
+**Windows 11 says "Smart App Control blocked an app"?** Smart App Control does not allow unsigned
+programs and has no "run anyway". Wait for a signed version of StagePlayer, or ask whoever manages
+the computer.
+
+### macOS
+
+macOS on Apple Silicon only runs signed apps. The StagePlayer app is ad-hoc signed (signed, but not
+by a developer registered with Apple), so macOS asks you to confirm it once.
+
+1. Open `StagePlayer-x.y.z-mac-arm64.dmg` and drag **StagePlayer** to **Applications**.
+2. Open **StagePlayer** from Applications. macOS says **"StagePlayer" Not Opened** (Apple could not
+   verify it). Click **Done**. Do *not* click Move to Trash.
+3. Open **System Settings → Privacy & Security** and scroll down to **Security**. Next to the message
+   about StagePlayer, click **Open Anyway**, then confirm with your password or Touch ID.
+4. StagePlayer starts. From now on it opens normally.
+
+**Alternative, using Terminal** (also fixes the message *"StagePlayer is damaged and can't be
+opened"*). This removes the "downloaded from the internet" mark from the app:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/StagePlayer.app
+```
+
+### Verify the download (optional)
+
+Each release includes `SHA256SUMS.txt` with a checksum for every file. If the checksum of your
+download matches, the file is exactly the one that GitHub Actions built from this repository.
+
+Windows (PowerShell):
+
+```powershell
+Get-FileHash "$env:USERPROFILE\Downloads\StagePlayer-Setup-0.2.0.exe" -Algorithm SHA256
+```
+
+macOS (Terminal):
+
+```sh
+shasum -a 256 ~/Downloads/StagePlayer-0.2.0-mac-arm64.dmg
+```
+
+Compare the result with the line for that file in `SHA256SUMS.txt` (upper or lower case does not
+matter).
 
 ## Running a rehearsal
 

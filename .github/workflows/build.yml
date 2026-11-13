@@ -42,6 +42,12 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run ${{ matrix.dist }}
+      - name: Check that the Mac app is ad-hoc signed (Apple Silicon refuses unsigned apps)
+        if: runner.os == 'macOS'
+        run: |
+          codesign --verify --deep --strict --verbose=2 release/mac-arm64/StagePlayer.app
+          codesign -dv release/mac-arm64/StagePlayer.app 2>&1 | tee codesign.txt
+          grep -q "Signature=adhoc" codesign.txt
       - name: Smoke test the packaged app
         run: node tests/smoke.mjs "${{ matrix.app }}"
         env:
@@ -70,6 +76,9 @@ jobs:
           pattern: installers-*
           merge-multiple: true
           path: installers
+      - name: SHA256 checksums
+        working-directory: installers
+        run: sha256sum StagePlayer-* | tee SHA256SUMS.txt
       - name: Create draft GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -79,18 +88,24 @@ jobs:
           body: |
             ## Download
 
-            **Windows**
-            - **StagePlayer-Setup-x.y.z.exe**: installer (no administrator rights needed)
-            - **StagePlayer-x.y.z-Portable.exe**: runs without installing, e.g. from a USB stick
+            | File | For |
+            | --- | --- |
+            | **StagePlayer-Setup-x.y.z.exe** | Windows: installer (no administrator rights needed) |
+            | **StagePlayer-x.y.z-Portable.exe** | Windows: runs without installing, e.g. from a USB stick |
+            | **StagePlayer-x.y.z-mac-arm64.dmg** | macOS on Apple Silicon (M1 or newer) |
+            | **SHA256SUMS.txt** | Checksums to verify the download |
 
-            **macOS** (Apple Silicon: M1 or newer)
-            - **StagePlayer-x.y.z-mac-arm64.dmg**: open it and drag StagePlayer to Applications.
-              The Mac app is not notarized by Apple. The first time you open it, macOS says it cannot
-              verify the app: open **System Settings › Privacy & Security**, scroll down and click
-              **Open Anyway**.
+            Show files (`.stageshow`) work on both Windows and macOS.
 
-            Show files (`.stageshow`) work on both Windows and macOS. See the
-            [README](https://github.com/finbom/StagePlayer#readme) for how to use StagePlayer.
+            ### First start: "unknown publisher" warning
+
+            The files are not yet signed with a certificate that Windows and macOS recognise, so you
+            confirm the app once. Full guide with help for every case:
+            **[Download and install](https://github.com/finbom/StagePlayer#download-and-install)**
+
+            - **Windows:** "Windows protected your PC" → click **More info** → **Run anyway**.
+            - **macOS:** open StagePlayer, click **Done** → **System Settings → Privacy & Security** →
+              **Open Anyway**. Or in Terminal: `xattr -dr com.apple.quarantine /Applications/StagePlayer.app`
 
             ## Code signing policy
 
